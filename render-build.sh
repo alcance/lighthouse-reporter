@@ -15,9 +15,16 @@ if [[ ! -d $STORAGE_DIR/chrome ]]; then
   dpkg -x ./google-chrome-stable_current_amd64.deb $STORAGE_DIR/chrome
   rm ./google-chrome-stable_current_amd64.deb
   chmod +x $STORAGE_DIR/chrome/opt/google/chrome/google-chrome
+  chmod +x $STORAGE_DIR/chrome/opt/google/chrome/chrome
+  chmod +x $STORAGE_DIR/chrome/opt/google/chrome/chrome-sandbox
   export PATH="${PATH}:/opt/render/project/.render/chrome/opt/google/chrome"
   cd $HOME/project/src # Make sure we return to where we were
 else
   echo "...Using Chrome from cache"
   chmod +x $STORAGE_DIR/chrome/opt/google/chrome/google-chrome
+  chmod +x $STORAGE_DIR/chrome/opt/google/chrome/chrome
+  chmod +x $STORAGE_DIR/chrome/opt/google/chrome/chrome-sandbox
 fi
+
+# Debug: List contents of the Chrome directory
+ls -la $STORAGE_DIR/chrome/opt/google/chrome
