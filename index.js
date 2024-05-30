@@ -1,5 +1,7 @@
 const express = require('express');
-const { exec } = require('child_process');
+const puppeteer = require('puppeteer');
+const lighthouse = require('lighthouse');
+const { URL } = require('url');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,20 +13,23 @@ app.get('/generate-report', async (req, res) => {
     return res.status(400).send('Please provide a URL as a query parameter.');
   }
 
-  exec(`npx lighthouse ${url} --output json --quiet --headless`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`exec error: ${error}`);
-      return res.status(500).send('Error generating the report.');
-    }
+  try {
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true,
+    });
+    const { lhr } = await lighthouse(url, {
+      port: (new URL(browser.wsEndpoint())).port,
+      output: 'json',
+    });
 
-    try {
-      const reportJson = JSON.parse(stdout);
-      res.json(reportJson);
-    } catch (parseError) {
-      console.error('Error parsing JSON:', parseError);
-      return res.status(500).send('Error parsing JSON report.');
-    }
-  });
+    await browser.close();
+
+    res.json(lhr);
+  } catch (error) {
+    console.error(`Error generating the report: ${error}`);
+    return res.status(500).send('Error generating the report.');
+  }
 });
 
 app.listen(PORT, () => {
