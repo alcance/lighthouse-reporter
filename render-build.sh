@@ -1,3 +1,4 @@
+#!/bin/bash
 set -o errexit
 
 STORAGE_DIR=/opt/render/project/.render
