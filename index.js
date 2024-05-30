@@ -1,6 +1,5 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
-const lighthouse = require('lighthouse');
 const { URL } = require('url');
 
 const app = express();
@@ -18,7 +17,11 @@ app.get('/generate-report', async (req, res) => {
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       headless: true,
     });
-    const { lhr } = await lighthouse(url, {
+
+    // Dynamically import lighthouse
+    const lighthouse = await import('lighthouse');
+
+    const { lhr } = await lighthouse.default(url, {
       port: (new URL(browser.wsEndpoint())).port,
       output: 'json',
     });
