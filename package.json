@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "postinstall": "./setup.sh",
+    "postinstall": "./render-build.sh",
     "start": "node index.js"
   },
   "keywords": [],
