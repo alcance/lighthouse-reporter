@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: systeclabs-audit-reporter
+    name: lighthouse-reporter
     env: node
     buildCommand: |
       apt-get update && \
