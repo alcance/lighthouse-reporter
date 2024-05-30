@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: my-express-app
+    name: systeclabs-audit-reporter
     env: node
     buildCommand: |
       apt-get update && \
