@@ -4,16 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "postinstall": "./render-build.sh",
     "start": "node index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@playwright/test": "^1.44.1",
-    "express": "^4.19.2",
-    "lighthouse": "^12.0.0",
-    "puppeteer": "^22.10.0"
+    "express": "^4.19.2"
   }
 }
