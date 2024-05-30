@@ -11,7 +11,7 @@ app.get('/generate-report', async (req, res) => {
     return res.status(400).send('Please provide a URL as a query parameter.');
   }
 
-  exec(`npm lighthouse ${url} --output json --quiet --headless`, (error, stdout, stderr) => {
+  exec(`npx lighthouse ${url} --output json --quiet --headless`, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
       return res.status(500).send('Error generating the report.');
