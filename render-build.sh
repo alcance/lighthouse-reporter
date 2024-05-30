@@ -1,8 +1,6 @@
 #!/bin/bash
 set -o errexit
 
-npm install
-
 STORAGE_DIR=/opt/render/project/.render
 
 if [[ ! -d $STORAGE_DIR/chrome ]]; then
