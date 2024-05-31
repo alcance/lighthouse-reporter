@@ -84,7 +84,7 @@ app.post('/generate-pdf-report', async (req, res) => {
     });
 
     if (subscribe) {
-      await fetch('https://lighthouse-reporter-ju9w.onrender.com/subscribe', {
+      await fetch('/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
