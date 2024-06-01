@@ -4,7 +4,9 @@ const { URL } = require('url');
 const { Resend } = require('resend');
 const bodyParser = require('body-parser');
 const mailchimp = require('@mailchimp/mailchimp_marketing');
+const cors = require('cors');  // Import cors
 require('dotenv').config();
+
 const PORT = process.env.PORT || 3003;
 const app = express();
 
@@ -14,6 +16,7 @@ mailchimp.setConfig({
 });
 
 app.use(bodyParser.json());
+app.use(cors());  // Use cors middleware
 
 let cachedJson = {
   // Mock cached JSON data
@@ -84,7 +87,7 @@ app.post('/generate-pdf-report', async (req, res) => {
     });
 
     if (subscribe) {
-      await fetch('/subscribe', {
+      await fetch('http://localhost:3003/subscribe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
