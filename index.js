@@ -75,7 +75,7 @@ app.get('/generate-report', async (req, res) => {
 });
 
 app.post('/generate-pdf-report', async (req, res) => {
-  const { email, subscribe } = req.body;
+  const { email } = req.body;
 
   if (!email) {
     return res.status(400).send('Email is required.');
@@ -102,16 +102,6 @@ app.post('/generate-pdf-report', async (req, res) => {
         }
       ]
     });
-
-    if (subscribe) {
-      await fetch('http://localhost:3003/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-    }
 
     res.send({ message: 'PDF report sent successfully.' });
   } catch (error) {
