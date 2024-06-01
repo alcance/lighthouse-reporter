@@ -16,7 +16,21 @@ mailchimp.setConfig({
 });
 
 app.use(bodyParser.json());
-app.use(cors());  // Use cors middleware
+
+// Define the regex pattern for allowed origins
+const allowedOrigins = [/^https:\/\/.*\.vercel\.app$/, 'https://labs.systec.dev'];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // Allow requests with no origin (like mobile apps, curl requests, etc.)
+    if (allowedOrigins.some((pattern) => pattern.test(origin))) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST'],
+}));
+
 
 let cachedJson = {
   // Mock cached JSON data
