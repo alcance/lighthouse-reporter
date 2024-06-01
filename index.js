@@ -28,11 +28,15 @@ app.use(cors({
     }
     callback(new Error('Not allowed by CORS'));
   },
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
-  preflightContinue: true,
+  credentials: true,
+  preflightContinue: false,
   optionsSuccessStatus: 204
 }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 
 let cachedJson = {
