@@ -4,7 +4,7 @@ const { URL } = require('url');
 const { Resend } = require('resend');
 const bodyParser = require('body-parser');
 const mailchimp = require('@mailchimp/mailchimp_marketing');
-const cors = require('cors');  // Import cors
+const cors = require('cors');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 3003;
@@ -17,30 +17,30 @@ mailchimp.setConfig({
 
 app.use(bodyParser.json());
 
+const allowedOrigins = ['https://labs.systec.dev', 'https://*.vercel.app'];
 
-const allowedOrigins = [/^https:\/\/.*\.vercel\.app$/, 'https://labs.systec.dev'];
-
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.some((pattern) => pattern.test(origin))) {
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.some(pattern => new RegExp(pattern).test(origin))) {
       return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
     }
-    callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
   credentials: true,
-  preflightContinue: false,
+  preflightContinue: true,
   optionsSuccessStatus: 204
-}));
+};
+
+app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options('*', cors());
-
+app.options('*', cors(corsOptions));
 
 let cachedJson = {
-  // Mock cached JSON data
   title: "Audit Report",
   content: "This is a sample report content."
 };
@@ -58,7 +58,6 @@ app.get('/generate-report', async (req, res) => {
       headless: true,
     });
 
-    // Dynamically import lighthouse
     const lighthouse = await import('lighthouse');
 
     const { lhr } = await lighthouse.default(url, {
@@ -90,7 +89,6 @@ app.post('/generate-pdf-report', async (req, res) => {
   }
 
   try {
-    // Convert cached JSON to PDF buffer
     const pdfBuffer = Buffer.from(JSON.stringify(cachedJson));
     const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -102,7 +100,9 @@ app.post('/generate-pdf-report', async (req, res) => {
       attachments: [
         {
           filename: 'report.pdf',
-          content: pdfBuffer
+          content: pdfBuffer.toString('base64'),
+          type: 'application/pdf',
+          disposition: 'attachment'
         }
       ]
     });
@@ -116,8 +116,6 @@ app.post('/generate-pdf-report', async (req, res) => {
 
 app.post('/subscribe', async (req, res) => {
   const { email } = req.body;
-
-  console.log('subscribing', email)
 
   if (!email) {
     return res.status(400).send('Email is required.');
