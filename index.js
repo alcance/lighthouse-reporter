@@ -17,7 +17,7 @@ mailchimp.setConfig({
 
 app.use(bodyParser.json());
 
-const allowedOrigins = ['https://labs.systec.dev', 'https://*.vercel.app'];
+const allowedOrigins = ['https://labs.systec.dev', 'https://*.vercel.app', 'http://localhost:3000'];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -40,10 +40,7 @@ app.use(cors(corsOptions));
 // Handle preflight requests
 app.options('*', cors(corsOptions));
 
-let cachedJson = {
-  title: "Audit Report",
-  content: "This is a sample report content."
-};
+let cachedJsonMap = new Map(); // Use a Map for caching
 
 app.get('/generate-report', async (req, res) => {
   const url = req.query.url;
@@ -52,6 +49,12 @@ app.get('/generate-report', async (req, res) => {
     return res.status(400).send('Please provide a URL as a query parameter.');
   }
 
+  // Check if the URL is already cached
+  if (cachedJsonMap.has(url)) {
+    res.send(cachedJsonMap.get(url));
+    return; // Exit the function early since data is cached
+  }
+  
   try {
     const browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -67,7 +70,7 @@ app.get('/generate-report', async (req, res) => {
 
     await browser.close();
 
-    cachedJson = lhr; // Cache the JSON response
+    cachedJsonMap.set(url, lhr); // Cache the JSON response for this URL
     console.log('report generated');
 
     res.json(lhr);
@@ -79,17 +82,19 @@ app.get('/generate-report', async (req, res) => {
 
 app.post('/generate-pdf-report', async (req, res) => {
   const { email } = req.body;
+  const url = req.query.url;
 
   if (!email) {
     return res.status(400).send('Email is required.');
   }
 
-  if (!cachedJson) {
-    return res.status(400).send('No cached JSON data available.');
+  // Check if the URL is cached
+  if (!cachedJsonMap.has(url)) {
+    return res.status(400).send('No cached JSON data available for this URL.');
   }
 
   try {
-    const pdfBuffer = Buffer.from(JSON.stringify(cachedJson));
+    const pdfBuffer = Buffer.from(JSON.stringify(cachedJsonMap.get(url)));
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
