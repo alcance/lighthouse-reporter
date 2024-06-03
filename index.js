@@ -93,6 +93,8 @@ const processQueue = async () => {
 app.get('/generate-report', (req, res) => {
   const url = req.query.url;
 
+  console.log('generting express report for', url)
+
   if (!url) {
     return res.status(400).send('Please provide a URL as a query parameter.');
   }
