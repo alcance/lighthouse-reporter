@@ -119,7 +119,6 @@ app.post('/generate-pdf-report', async (req, res) => {
   }
 
   // Check if the URL is cached
-  console.log(cachedJsonMap);
   if (!cachedJsonMap.has(websiteUrl)) {
     return res.status(400).json({ error: 'No cached JSON data available for this URL.' });
   }
@@ -175,41 +174,91 @@ app.post('/generate-pdf-report', async (req, res) => {
       return category && category.score !== undefined ? category.score * 100 : 'N/A';
     };
 
-    pdfDoc.fontSize(14).fillColor('green').text('Performance:');
-    pdfDoc.fontSize(12).fillColor('black').text(`Score: ${getScore(reportData.categories.performance)}`);
-    pdfDoc.moveDown();
+    // Add detailed audits with fix instructions
 
-    pdfDoc.fontSize(14).fillColor('green').text('Accessibility:');
-    pdfDoc.fontSize(12).fillColor('black').text(`Score: ${getScore(reportData.categories.accessibility)}`);
-    pdfDoc.moveDown();
-
-    pdfDoc.fontSize(14).fillColor('green').text('Best Practices:');
-    pdfDoc.fontSize(12).fillColor('black').text(`Score: ${getScore(reportData.categories['best-practices'])}`);
-    pdfDoc.moveDown();
-
-    pdfDoc.fontSize(14).fillColor('green').text('SEO:');
-    pdfDoc.fontSize(12).fillColor('black').text(`Score: ${getScore(reportData.categories.seo)}`);
-    pdfDoc.moveDown();
-
-    pdfDoc.fontSize(14).fillColor('green').text('PWA:');
-    pdfDoc.fontSize(12).fillColor('black').text(`Score: ${getScore(reportData.categories.pwa)}`);
-    pdfDoc.moveDown();
-
-    // Add detailed audits (example: performance audits)
+    // Performance Audits
     pdfDoc.fontSize(14).fillColor('green').text('Performance Audits:');
-
     const performanceAudits = [
-      { name: 'First Contentful Paint', value: reportData.audits['first-contentful-paint'] },
-      { name: 'Speed Index', value: reportData.audits['speed-index'] },
-      { name: 'Largest Contentful Paint', value: reportData.audits['largest-contentful-paint'] },
-      { name: 'Time to Interactive', value: reportData.audits['interactive'] },
-      { name: 'Total Blocking Time', value: reportData.audits['total-blocking-time'] },
-      { name: 'Cumulative Layout Shift', value: reportData.audits['cumulative-layout-shift'] }
+      { name: 'First Contentful Paint', value: reportData.audits['first-contentful-paint'], fix: 'Optimize images and CSS delivery.' },
+      { name: 'Speed Index', value: reportData.audits['speed-index'], fix: 'Minimize main-thread work and reduce JavaScript execution time.' },
+      // Add fix instructions for other performance audits as needed
     ];
 
     performanceAudits.forEach(audit => {
       if (audit.value && audit.value.displayValue) {
         pdfDoc.fontSize(12).fillColor('black').text(`${audit.name}: ${audit.value.displayValue}`);
+        pdfDoc.moveDown();
+        pdfDoc.fontSize(10).fillColor('red').text(`Fix: ${audit.fix}`); // Add fix instructions
+        pdfDoc.moveDown();
+      }
+    });
+
+    // Accessibility Audits
+    pdfDoc.fontSize(14).fillColor('green').text('Accessibility Audits:');
+
+
+    const accessibilityAudits = [
+      { name: 'Aria Valid', value: reportData.audits['aria-valid'], fix: 'Ensure ARIA attributes are correctly used and valid.' },
+      { name: 'Color Contrast', value: reportData.audits['color-contrast'], fix: 'Improve color contrast for better readability.' },
+      // Add fix instructions for other accessibility audits as needed
+    ];
+
+    accessibilityAudits.forEach(audit => {
+      if (audit.value && audit.value.score !== undefined) {
+        pdfDoc.fontSize(12).fillColor('black').text(`${audit.name}: ${getScore(audit.value)}`);
+        pdfDoc.moveDown();
+        pdfDoc.fontSize(10).fillColor('red').text(`Fix: ${audit.fix}`); // Add fix instructions
+        pdfDoc.moveDown();
+      }
+    });
+
+    // Best Practices Audits
+    pdfDoc.fontSize(14).fillColor('green').text('Best Practices Audits:');
+    const bestPracticesAudits = [
+      { name: 'Avoids Application Cache', value: reportData.audits['appcache-manifest'], fix: 'Use Service Workers to improve offline experience.' },
+      { name: 'Uses HTTP/2', value: reportData.audits['uses-http2'], fix: 'Upgrade to HTTP/2 for faster loading times.' },
+      // Add fix instructions for other best practices audits as needed
+    ];
+
+    bestPracticesAudits.forEach(audit => {
+      if (audit.value && audit.value.score !== undefined) {
+        pdfDoc.fontSize(12).fillColor('black').text(`${audit.name}: ${getScore(audit.value)}`);
+        pdfDoc.moveDown();
+        pdfDoc.fontSize(10).fillColor('red').text(`Fix: ${audit.fix}`); // Add fix instructions
+        pdfDoc.moveDown();
+      }
+    });
+
+    // SEO Audits
+    pdfDoc.fontSize(14).fillColor('green').text('SEO Audits:');
+    const seoAudits = [
+      { name: 'Document Title', value: reportData.audits['document-title'], fix: 'Include a descriptive title with relevant keywords.' },
+      { name: 'Meta Description', value: reportData.audits['meta-description'], fix: 'Create compelling meta descriptions for better click-through rates.' },
+      // Add fix instructions for other SEO audits as needed
+    ];
+
+    seoAudits.forEach(audit => {
+      if (audit.value && audit.value.score !== undefined) {
+        pdfDoc.fontSize(12).fillColor('black').text(`${audit.name}: ${getScore(audit.value)}`);
+        pdfDoc.moveDown();
+        pdfDoc.fontSize(10).fillColor('red').text(`Fix: ${audit.fix}`); // Add fix instructions
+        pdfDoc.moveDown();
+      }
+    });
+
+    // PWA Audits
+    pdfDoc.fontSize(14).fillColor('green').text('PWA Audits:');
+    const pwaAudits = [
+      { name: 'Fast and Reliable', value: reportData.audits['offline-start-url'], fix: 'Implement a service worker to cache assets for offline use.' },
+      { name: 'Installable', value: reportData.audits['is-installable'], fix: 'Add a web app manifest to enable installation.' },
+      // Add fix instructions for other PWA audits as needed
+    ];
+
+    pwaAudits.forEach(audit => {
+      if (audit.value && audit.value.score !== undefined) {
+        pdfDoc.fontSize(12).fillColor('black').text(`${audit.name}: ${getScore(audit.value)}`);
+        pdfDoc.moveDown();
+        pdfDoc.fontSize(10).fillColor('red').text(`Fix: ${audit.fix}`); // Add fix instructions
         pdfDoc.moveDown();
       }
     });
