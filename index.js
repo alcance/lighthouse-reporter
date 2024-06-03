@@ -75,6 +75,7 @@ const processQueue = async () => {
     });
 
     await browser.close();
+    debugger;
 
     cachedJsonMap.set(url, lhr); // Cache the JSON response for this URL
     console.log('report generated');
