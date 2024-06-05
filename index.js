@@ -23,7 +23,7 @@ mailchimp.setConfig({
 
 app.use(bodyParser.json());
 
-const allowedOrigins = ['https://labs.systec.dev', 'https://*.vercel.app', 'http://localhost:3000'];
+const allowedOrigins = ['https://*.systec.dev', 'https://*.vercel.app', 'http://localhost:3000'];
 
 const corsOptions = {
   origin: function (origin, callback) {
