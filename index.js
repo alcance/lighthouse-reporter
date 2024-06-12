@@ -6,7 +6,6 @@ const bodyParser = require('body-parser');
 const mailchimp = require('@mailchimp/mailchimp_marketing');
 const cors = require('cors');
 const { Readable } = require('stream');
-
 const PDFDocument = require('pdfkit');
 const MemoryStream = require('memorystream'); // A library to handle in-memory streams
 const fs = require('fs');
@@ -93,7 +92,7 @@ const processQueue = async () => {
 app.get('/generate-report', (req, res) => {
   const url = req.query.url;
 
-  console.log('generting express report for', url)
+  console.log('generating express report for', url)
 
   if (!url) {
     return res.status(400).send('Please provide a URL as a query parameter.');
@@ -111,6 +110,59 @@ app.get('/generate-report', (req, res) => {
   // Process the queue if not already processing
   processQueue();
 });
+
+
+app.get('/generate-css-report', async (req, res) => {
+  const url = req.query.url;
+
+  if (!url) {
+    return res.status(400).send('Please provide a URL as a query parameter.');
+  }
+
+  try {
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true,
+    });
+
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2' }); // Ensure the page is fully loaded
+
+    const colors = await page.evaluate(() => {
+      const styles = Array.from(document.styleSheets);
+      const colorSet = new Set();
+
+      const resolveCSSVariable = (value) => {
+        // Replace CSS variable with placeholder value
+        return value.replace(/var\([^)]+\)/g, '1');
+      };
+
+      styles.forEach(styleSheet => {
+        try {
+          const rules = styleSheet.cssRules || [];
+          Array.from(rules).forEach(rule => {
+            if (rule.style && rule.style.color) {
+              colorSet.add(resolveCSSVariable(rule.style.color));
+            }
+          });
+        } catch (e) {
+          // Catch and log any security-related errors when accessing CSS rules
+          console.warn('Error accessing stylesheet:', e);
+        }
+      });
+
+      return Array.from(colorSet);
+    });
+
+    await browser.close();
+    res.json({ colors });
+
+  } catch (error) {
+    console.error(`Error generating the CSS report: ${error}`);
+    res.status(500).send('Error generating the CSS report.');
+  }
+});
+
 
 app.post('/generate-pdf-report', async (req, res) => {
   const { email, websiteUrl } = req.body;
@@ -215,66 +267,11 @@ app.post('/generate-pdf-report', async (req, res) => {
       }
     });
 
-    // Best Practices Audits
-    pdfDoc.fontSize(14).fillColor('green').text('Best Practices Audits:');
-    const bestPracticesAudits = [
-      { name: 'Avoids Application Cache', value: reportData.audits['appcache-manifest'], fix: 'Use Service Workers to improve offline experience.' },
-      { name: 'Uses HTTP/2', value: reportData.audits['uses-http2'], fix: 'Upgrade to HTTP/2 for faster loading times.' },
-      // Add fix instructions for other best practices audits as needed
-    ];
-
-    bestPracticesAudits.forEach(audit => {
-      if (audit.value && audit.value.score !== undefined) {
-        pdfDoc.fontSize(12).fillColor('black').text(`${audit.name}: ${getScore(audit.value)}`);
-        pdfDoc.moveDown();
-        pdfDoc.fontSize(10).fillColor('red').text(`Fix: ${audit.fix}`); // Add fix instructions
-        pdfDoc.moveDown();
-      }
-    });
-
-    // SEO Audits
-    pdfDoc.fontSize(14).fillColor('green').text('SEO Audits:');
-    const seoAudits = [
-      { name: 'Document Title', value: reportData.audits['document-title'], fix: 'Include a descriptive title with relevant keywords.' },
-      { name: 'Meta Description', value: reportData.audits['meta-description'], fix: 'Create compelling meta descriptions for better click-through rates.' },
-      // Add fix instructions for other SEO audits as needed
-    ];
-
-    seoAudits.forEach(audit => {
-      if (audit.value && audit.value.score !== undefined) {
-        pdfDoc.fontSize(12).fillColor('black').text(`${audit.name}: ${getScore(audit.value)}`);
-        pdfDoc.moveDown();
-        pdfDoc.fontSize(10).fillColor('red').text(`Fix: ${audit.fix}`); // Add fix instructions
-        pdfDoc.moveDown();
-      }
-    });
-
-    // PWA Audits
-    pdfDoc.fontSize(14).fillColor('green').text('PWA Audits:');
-    const pwaAudits = [
-      { name: 'Fast and Reliable', value: reportData.audits['offline-start-url'], fix: 'Implement a service worker to cache assets for offline use.' },
-      { name: 'Installable', value: reportData.audits['is-installable'], fix: 'Add a web app manifest to enable installation.' },
-      // Add fix instructions for other PWA audits as needed
-    ];
-
-    pwaAudits.forEach(audit => {
-      if (audit.value && audit.value.score !== undefined) {
-        pdfDoc.fontSize(12).fillColor('black').text(`${audit.name}: ${getScore(audit.value)}`);
-        pdfDoc.moveDown();
-        pdfDoc.fontSize(10).fillColor('red').text(`Fix: ${audit.fix}`); // Add fix instructions
-        pdfDoc.moveDown();
-      }
-    });
-
-    // Add watermark text to the first page
-    pdfDoc.font('Helvetica-Bold').fontSize(30).fillColor('gray').opacity(0.5).text('SYSTEC LABS', 300, 500, { angle: 45 });
-
-    // Finalize the PDF document
     pdfDoc.end();
 
   } catch (error) {
-    console.error(`Error in service sending the PDF report: ${error}`);
-    res.status(500).json({ error: 'Error sending the PDF report.' });
+    console.error(`Error generating the PDF report: ${error}`);
+    res.status(500).json({ error: 'Error generating the PDF report.' });
   }
 });
 
@@ -282,19 +279,19 @@ app.post('/subscribe', async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
-    return res.status(400).send('Email is required.');
+    return res.status(400).json({ error: 'Email is required.' });
   }
 
   try {
-    const response = await mailchimp.lists.addListMember(process.env.MAILCHIMP_LIST_ID, {
+    const response = await mailchimp.lists.addListMember(process.env.MAILCHIMP_AUDIENCE_ID, {
       email_address: email,
       status: 'subscribed',
     });
 
-    res.send({ message: 'Successfully subscribed to Mailchimp list.' });
+    res.json({ message: 'Subscription successful.' });
   } catch (error) {
-    console.error(`Error subscribing to Mailchimp list: ${error}`);
-    res.status(500).send('Error subscribing to Mailchimp list.');
+    console.error(`Error subscribing email: ${error}`);
+    res.status(500).json({ error: 'Error subscribing email.' });
   }
 });
 
