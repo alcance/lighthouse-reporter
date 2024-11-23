@@ -192,7 +192,7 @@ const processQueue = async () => {
 
     await browser.close();
     cachedJsonMap.set(url, lhr);
-    fs.writeFileSync('report.json', JSON.stringify(lhr));
+    console.log('Report generated for:', url);
     res.json(lhr);
   } catch (error) {
     console.error(`Error generating the report: ${error}`);
