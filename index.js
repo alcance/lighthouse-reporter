@@ -76,6 +76,99 @@ const getCriticalItems = (reportData, category) => {
       return a.score - b.score;
     });
 };
+const addPageWatermark = (doc) => {
+  const watermarkText = 'SYSTEC LABS';
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.saveGraphicsState();
+  doc.setGState(new doc.GState({ opacity: 0.1 }));
+  doc.setFontSize(60);
+  doc.setTextColor(200, 200, 200);
+
+  // Center position
+  const textWidth = doc.getTextDimensions(watermarkText).w;
+  const x = pageWidth / 2 - textWidth / 2;
+  const y = pageHeight / 2;
+
+  // Rotate text at center
+  doc.text(watermarkText, x, y, {
+    angle: 45,
+    align: 'center'
+  });
+
+  doc.restoreGraphicsState();
+};
+
+// Add this helper function for header
+const addPageHeader = (doc) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // Add header border
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.line(10, 15, pageWidth - 10, 15);
+  
+  // Add logo text
+  doc.setFontSize(10);
+  doc.setTextColor(100, 116, 139);
+  doc.text('SYSTEC LABS', 14, 12);
+  
+  // Add page info on right
+  doc.text('Web Audit Report', pageWidth - 14, 12, { align: 'right' });
+};
+
+// Add this helper function for the website info table
+const addWebsiteInfoTable = (doc, websiteUrl, reportData) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // Get general website info from report data
+  const mainMetrics = {
+    totalBytes: reportData.audits['total-byte-weight']?.displayValue || 'N/A',
+    serverResponseTime: reportData.audits['server-response-time']?.displayValue || 'N/A',
+    userAgent: reportData.environment?.hostUserAgent || 'N/A',
+    timestamp: format(new Date(reportData.fetchTime), 'MMM dd, yyyy HH:mm:ss'),
+    device: reportData.configSettings?.formFactor || 'desktop',
+    networkThrottle: reportData.configSettings?.throttling?.rttMs + 'ms' || 'N/A'
+  };
+
+  doc.autoTable({
+    startY: 25,
+    theme: 'plain',
+    headStyles: {
+      fillColor: [240, 245, 250],
+      textColor: [15, 23, 42],
+      fontStyle: 'bold',
+      fontSize: 9
+    },
+    bodyStyles: {
+      fontSize: 8,
+      textColor: [71, 85, 105]
+    },
+    columnStyles: {
+      0: { cellWidth: 40 },
+      1: { cellWidth: 'auto' }
+    },
+    head: [['Website Information', '']],
+    body: [
+      ['URL', websiteUrl],
+      ['Scan Date', mainMetrics.timestamp],
+      ['Total Size', mainMetrics.totalBytes],
+      ['Response Time', mainMetrics.serverResponseTime],
+      ['Device', mainMetrics.device],
+      ['Network', mainMetrics.networkThrottle]
+    ],
+    margin: { left: 14, right: 14 },
+    styles: {
+      overflow: 'linebreak',
+      cellWidth: 'wrap',
+      cellPadding: 2
+    }
+  });
+
+  return doc.lastAutoTable.finalY + 10; // Return the Y position after the table
+};
+
 
 
 const processQueue = async () => {
@@ -169,35 +262,53 @@ app.post('/generate-pdf-report', async (req, res) => {
       format: 'a4'
     });
 
-    // Helper function to add watermark
-    const addWatermark = () => {
-      const text = 'SYSTEC LABS';
-      doc.setTextColor(248, 250, 252);
-      doc.setFontSize(60);
-      doc.setGState(new doc.GState({ opacity: 0.1 }));
-      
-      // Calculate center of page
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const textWidth = doc.getTextWidth(text);
-      
-      // Position text diagonally
-      doc.text(text, pageWidth/2 - textWidth/2, pageHeight/2, {
-        angle: 45
-      });
-      
-      doc.setGState(new doc.GState({ opacity: 1.0 }));
+    // Add header
+    addPageHeader(doc);
+
+    // Website Info Table
+    const mainMetrics = {
+      totalBytes: reportData.audits['total-byte-weight']?.displayValue || 'N/A',
+      serverResponseTime: reportData.audits['server-response-time']?.displayValue || 'N/A',
+      timestamp: format(new Date(reportData.fetchTime), 'MMM dd, yyyy HH:mm:ss'),
+      device: reportData.configSettings?.formFactor || 'desktop',
+      networkThrottle: reportData.configSettings?.throttling?.rttMs + 'ms' || 'N/A'
     };
 
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(15, 23, 42);
-    doc.text('Web Performance Audit Report', doc.internal.pageSize.getWidth()/2, 20, { align: 'center' });
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Generated for: ${websiteUrl}`, doc.internal.pageSize.getWidth()/2, 30, { align: 'center' });
-    doc.text(`Report Date: ${format(new Date(), 'MMM dd, yyyy')}`, doc.internal.pageSize.getWidth()/2, 35, { align: 'center' });
+    doc.autoTable({
+      startY: 25,
+      theme: 'plain',
+      headStyles: {
+        fillColor: [240, 245, 250],
+        textColor: [15, 23, 42],
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 8,
+        textColor: [71, 85, 105]
+      },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 'auto' }
+      },
+      head: [['Website Information', '']],
+      body: [
+        ['URL', websiteUrl],
+        ['Scan Date', mainMetrics.timestamp],
+        ['Total Size', mainMetrics.totalBytes],
+        ['Response Time', mainMetrics.serverResponseTime],
+        ['Device', mainMetrics.device],
+        ['Network', mainMetrics.networkThrottle]
+      ],
+      margin: { left: 14, right: 14 },
+      styles: {
+        overflow: 'linebreak',
+        cellWidth: 'wrap',
+        cellPadding: 2
+      }
+    });
+
+    const startY = doc.lastAutoTable.finalY + 10;
 
     // Score Summary Table
     const scoreHeaders = [['Category', 'Score', 'Status']];
@@ -211,12 +322,16 @@ app.post('/generate-pdf-report', async (req, res) => {
     doc.autoTable({
       head: scoreHeaders,
       body: scoreRows,
-      startY: 45,
+      startY: startY,
       theme: 'grid',
-      headStyles: { 
+      headStyles: {
         fillColor: [248, 250, 252],
         textColor: [15, 23, 42],
-        fontStyle: 'bold'
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 8
       },
       styles: {
         overflow: 'linebreak',
@@ -226,7 +341,8 @@ app.post('/generate-pdf-report', async (req, res) => {
         0: { cellWidth: 50 },
         1: { cellWidth: 30 },
         2: { cellWidth: 40 }
-      }
+      },
+      margin: { left: 14, right: 14 }
     });
 
     // Critical Issues by Category
@@ -236,7 +352,6 @@ app.post('/generate-pdf-report', async (req, res) => {
     for (const category of categories) {
       const criticalItems = getCriticalItems(reportData, category);
       if (criticalItems.length > 0) {
-        // Add new page if we're too close to the bottom
         if (yPos > doc.internal.pageSize.getHeight() - 40) {
           doc.addPage();
           yPos = 20;
@@ -260,7 +375,11 @@ app.post('/generate-pdf-report', async (req, res) => {
           headStyles: {
             fillColor: [248, 250, 252],
             textColor: [15, 23, 42],
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            fontSize: 9
+          },
+          bodyStyles: {
+            fontSize: 8
           },
           styles: {
             overflow: 'linebreak',
@@ -272,14 +391,13 @@ app.post('/generate-pdf-report', async (req, res) => {
           },
           margin: { left: 14, right: 14 },
           didDrawPage: (data) => {
-            // Update yPos after each table
             yPos = data.cursor.y + 10;
           }
         });
       }
     }
 
-    // Performance Metrics Section
+    // Performance Metrics
     doc.addPage();
     yPos = 20;
     
@@ -314,7 +432,11 @@ app.post('/generate-pdf-report', async (req, res) => {
       headStyles: {
         fillColor: [248, 250, 252],
         textColor: [15, 23, 42],
-        fontStyle: 'bold'
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 8
       },
       styles: {
         overflow: 'linebreak',
@@ -328,7 +450,7 @@ app.post('/generate-pdf-report', async (req, res) => {
       margin: { left: 14, right: 14 }
     });
 
-    // Summary Section
+    // Summary Table
     const totalIssues = categories.reduce((acc, category) => 
       acc + getCriticalItems(reportData, category).length, 0
     );
@@ -350,7 +472,11 @@ app.post('/generate-pdf-report', async (req, res) => {
       headStyles: {
         fillColor: [248, 250, 252],
         textColor: [15, 23, 42],
-        fontStyle: 'bold'
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 8
       },
       styles: {
         overflow: 'linebreak',
@@ -363,17 +489,17 @@ app.post('/generate-pdf-report', async (req, res) => {
       margin: { left: 14, right: 14 }
     });
 
-    // Add watermark to each page
+    // Add watermark and header to each page
     const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      addWatermark();
+      if (i > 1) addPageHeader(doc);
+      addPageWatermark(doc);
     }
 
-    // Convert to buffer
+    // Convert to buffer and send email
     const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
-
-    // Send email
+    
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: 'Systec Labs <im@systec.dev>',
